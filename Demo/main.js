@@ -14,6 +14,8 @@ import {
   NativeModules,
 } from 'react-native';
 
+import PubSub from './PubSub';
+
 var NativeNavigator = NativeModules.NativeNavigator;
 
 type Props = {
@@ -21,13 +23,19 @@ type Props = {
   j: number,
 }
 
+type State = {
+  latestEvent?: string,
+}
+
 export default class GLReactNative extends Component {
   props: Props;
+  state: State;
   constructor(props: Props) {
-    super(props)
+    super(props);
+    this.state = {
+    };
   }
   static defaultProps = {
-    ...Component.defaultProps,
     i: 0,
     j: 0,
   }
@@ -45,6 +53,16 @@ export default class GLReactNative extends Component {
   }
   popOrDismiss() {
     NativeNavigator.popOrDismiss();
+  }
+  componentDidMount() {
+    PubSub.subscribe(this, 'test_event', (data:any) => {
+      this.setState({
+        latestEvent: data.page,
+      });
+    });
+  }
+  componentWillUnmount() {
+    PubSub.unsubscribe(this);
   }
   render() {
     if (this.props.url == '/some_module') {
@@ -69,6 +87,11 @@ export default class GLReactNative extends Component {
         <Text style={styles.welcome}>
           Glow React Native page #{this.props.j}-{this.props.i}
         </Text>
+        {!!this.state.latestEvent && (
+          <Text style={styles.welcome}>
+            Latest event from: {this.state.latestEvent}
+          </Text>
+        )}
         <View style={styles.buttons}>
           <TouchableOpacity onPress={() => { this.showURL('/', {i: this.props.i + 1, j: this.props.j})}}>
             <Text style={styles.button}>Show/Push next page</Text>
@@ -84,6 +107,9 @@ export default class GLReactNative extends Component {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => { this.openURL('https://glowing.com') }}>
             <Text style={styles.button}>Open URL</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { PubSub.publish('test_event', {page: `#${this.props.j}-${this.props.i}`})}}>
+            <Text style={styles.button}>Publish Event From This Page</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -42,10 +42,15 @@ RCT_EXPORT_MODULE(PubSubEmitter)
 
 - (NSDictionary *)parseNotification:(NSNotification *)notification {
     NSDictionary *userInfo = notification.userInfo;
-    if ([userInfo.allKeys isEqualToArray:@[@"data"]]) {
-        userInfo = userInfo[@"data"];
+    id jsonData = nil;
+    @try {
+        id json = [NSJSONSerialization dataWithJSONObject:userInfo options:0 error:NULL];
+        jsonData = [NSJSONSerialization JSONObjectWithData:json options:0 error:NULL];
+    } @catch (NSException *exception) {
     }
-    id jsonData = @{}; // Convert user info to json safe object
+    if (!jsonData) {
+        jsonData = [NSNull null];
+    }
     return @{
         @"name": notification.name ?: @"",
         @"data": jsonData,
@@ -66,13 +71,7 @@ RCT_EXPORT_METHOD(publishEvent:(NSString *)eventName data:(NSDictionary *)eventD
     if (!eventName) {
         return;
     }
-    NSDictionary *userInfo = nil;
-    if (eventData) {
-        userInfo = @{
-            @"data": eventData,
-        };
-    }
-    [[NSNotificationCenter defaultCenter] postNotificationName:eventName object:self userInfo:userInfo];
+    [[NSNotificationCenter defaultCenter] postNotificationName:eventName object:self userInfo:eventData];
 }
 
 RCT_EXPORT_METHOD(subscribeEvent:(NSString *)eventName) {
